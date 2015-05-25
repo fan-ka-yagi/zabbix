@@ -83,7 +83,7 @@ SOLR_CORES=`curl --max-time 15 --fail --silent http://${SOLR_HOST}:${SOLR_HOST_P
 
 # Re-format XML and strip out only the list of cores
 
-SOLR_CORES=`echo ${SOLR_CORES} | xmllint --format - | egrep 'lst name="(search|discount)"' | sed -e 's/<.*="//g' -e 's/">//g'`
+SOLR_CORES=`echo ${SOLR_CORES} | xmllint --format - | egrep 'lst name="items"' | sed -e 's/<.*="//g' -e 's/">//g'`
 
 [ -n "$SOLR_CORES"  ] || {
   echo "CRITICAL: server \"$SOLR_HOST\" returned an empty list of cores."
@@ -101,7 +101,7 @@ do
     #Verifying replication health is harder, so there will be several checks.
     # 1) Check if master host is defined.
     # 2) Check indexReplicatedAtList and compare it with replicationFailedAtList. This will determine if replication is working.
-    # 3) Check if indexReplicatedAtList is more then 2 hours behind now().  If it is then something might be wrong.
+    # 3) Check if indexReplicatedAtList is more than 2 hours behind now().  If it is then something might be wrong.
     # 4) Check if indexVersion on master and slave match.
     SOLR_SLAVE_DETAILS=`curl --max-time 10 --silent http://${SOLR_HOST}:${SOLR_HOST_PORT}/solr/${CORE}/replication?command=details`
     # Get the URL to the corresponding master core
@@ -112,16 +112,16 @@ do
       # masterUrl is set, so continue with the next check.
       
       # Get the master index version
-      SOLR_MASTER_INDEXVERSION=`curl --max-time 10 --silent "$SOLR_SLAVE_MASTERURL"'?command=indexversion' | xmlstarlet sel -t -v "/response/long[@name='indexversion']" `
+      SOLR_MASTER_INDEXVERSION=`curl --max-time 10 --silent "$SOLR_SLAVE_MASTERURL"'/replication?command=indexversion' | xmlstarlet sel -t -v "/response/long[@name='indexversion']" `
       
       # Get slave index version
       SOLR_SLAVE_INDEXVERSION=`echo "$SOLR_SLAVE_DETAILS" | xmlstarlet sel -t -v "/response/lst[@name='details']/long[@name='indexVersion']"`
       
       # Get the last time the core replicated correctly.
-      SOLR_SLAVE_REPLICATEDAT=`echo "$SOLR_SLAVE_DETAILS" | xmlstarlet sel -t -v "/response/lst[@name='details']/lst[@name='slave']/arr[@name='indexReplicatedAtList']/str"`
+      SOLR_SLAVE_REPLICATEDAT=`echo "$SOLR_SLAVE_DETAILS" | xmlstarlet sel -t -v "/response/lst[@name='details']/lst[@name='slave']/arr[@name='indexReplicatedAtList']/str" | head -n1`
       
       # Get the last time the core failed to replicate.
-      SOLR_SLAVE_FAILEDAT=`echo "$SOLR_SLAVE_DETAILS" | xmlstarlet sel -t -v "/response/lst[@name='details']/lst[@name='slave']/arr[@name='replicationFailedAtList']/str"`
+      SOLR_SLAVE_FAILEDAT=`echo "$SOLR_SLAVE_DETAILS" | xmlstarlet sel -t -v "/response/lst[@name='details']/lst[@name='slave']/arr[@name='replicationFailedAtList']/str" | head -n1` 
       
       # Is this core replicating (aka pulling index from master) right now?
       SOLR_SLAVE_REPLICATING=`echo "$SOLR_SLAVE_DETAILS" | xmlstarlet sel -t -v "/response/lst[@name='details']/lst[@name='slave']/str[@name='isReplicating']"`
@@ -152,7 +152,7 @@ do
               OUT="${OUT}Core \"${CORE}\" is up to date.\n"
             else
               # Slave if outdated.
-              OUT="${OUT}Core \"${CORE}\" is behind master more then $SOLR_TIME_DIFF seconds.\n"
+              OUT="${OUT}Core \"${CORE}\" is behind master more than $SOLR_TIME_DIFF seconds.\n"
               EXIT_CODE=1
             fi
           else
@@ -166,7 +166,7 @@ do
                 OUT="${OUT}Core \"${CORE}\" is up to date.\n"
               else
                 # Slave if outdated.
-                OUT="${OUT}Core \"${CORE}\" is behind master more then $SOLR_TIME_DIFF seconds.\n"
+                OUT="${OUT}Core \"${CORE}\" is behind master more than $SOLR_TIME_DIFF seconds.\n"
                 EXIT_CODE=1
               fi
             else
