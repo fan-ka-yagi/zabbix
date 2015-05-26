@@ -57,6 +57,16 @@ do
       SOLR_SLAVE="YES"
       shift 
     ;;
+
+    --zabbixkey|-K)
+      SOLR_ZABBIX_KEY="$2"
+      shift 2
+    ;;
+
+    --zabbixserver|-Z)
+      SOLR_ZABBIX_SERVER="$2"
+      shift 2
+    ;;
     
     *)
       # Non option argument
@@ -184,7 +194,9 @@ do
   fi
 done
 
-echo -e "$OUT"
+#echo -e "$OUT"
+zabbix_sender -z $SOLR_ZABBIX_SERVER -s `hostname` -k $SOLR_ZABBIX_KEY -o $EXIT_CODE > /dev/null
+echo $EXIT_CODE
 exit $EXIT_CODE
       
 __END__
